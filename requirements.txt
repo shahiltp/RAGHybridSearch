@@ -1,0 +1,38 @@
+# Core
+pydantic-settings>=2.2
+python-dotenv>=1.0
+
+# API
+fastapi>=0.110
+uvicorn[standard]>=0.27
+
+rank-bm25>=0.2.2
+cohere>=5.0
+
+# OpenAI
+openai>=1.40
+
+# Database (pgvector via Postgres)
+SQLAlchemy>=2.0
+psycopg[binary]>=3.1
+
+# Utilities
+tenacity>=8.2
+orjson>=3.10
+rich>=13.7
+python-docx>=1.1.0
+tiktoken>=0.7.0
+pymupdf>=1.24.0
+fastapi>=0.110
+uvicorn[standard]>=0.27
+pydantic>=2.6
+
+
+# Testing
+pytest>=8.0
+
+#eval 
+ragas>=0.2.5
+datasets>=2.19.0
+pandas>=2.2.0
+pytest>=8.0.0
