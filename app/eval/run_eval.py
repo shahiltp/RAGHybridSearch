@@ -1,17 +1,24 @@
 import json
 import requests
 from pathlib import Path
-import pandas as pd
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+if "OPENAI_API_KEY" not in os.environ:
+    os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY", "")
 
 from datasets import Dataset
-from ragas.metrics import faithfulness, answer_relevancy, context_precision, context_recall
 from ragas import evaluate
+from ragas.metrics import Faithfulness, AnswerRelevancy, ContextPrecision, ContextRecall
 
 GOLDEN_PATH = Path("data/golden.jsonl")
 API_URL = "http://127.0.0.1:8000/ask"
 
 
 def load_golden():
+    if not GOLDEN_PATH.exists():
+        raise FileNotFoundError(f"{GOLDEN_PATH} not found. Create it first.")
     rows = []
     with GOLDEN_PATH.open("r", encoding="utf-8") as f:
         for line in f:
@@ -21,7 +28,7 @@ def load_golden():
 
 def call_ask(question: str, doc_id: str):
     payload = {"query": question, "doc_id": doc_id, "debug": True}
-    r = requests.post(API_URL, json=payload, timeout=60)
+    r = requests.post(API_URL, json=payload, timeout=120)
     r.raise_for_status()
     return r.json()
 
@@ -33,19 +40,19 @@ def main():
     for r in rows:
         out = call_ask(r["question"], r["doc_id"])
 
-        # Build contexts list from debug fused_top (or reranked/context_pages if you prefer)
+        # Prefer full contexts from API debug (you should add debug["contexts"] = [c.text ...])
         contexts = []
-        if out.get("debug") and out["debug"].get("fused_top"):
-            for item in out["debug"]["fused_top"]:
-                contexts.append(item["preview"])
+        if out.get("debug") and out["debug"].get("contexts"):
+            contexts = out["debug"]["contexts"]
+        elif out.get("debug") and out["debug"].get("fused_top"):
+            contexts = [x.get("preview", "") for x in out["debug"]["fused_top"]]
 
         eval_rows.append(
             {
                 "question": r["question"],
                 "answer": out["answer"],
                 "contexts": contexts,
-                # optional "ground_truth" if you have it (otherwise skip metrics needing it)
-                # "ground_truth": r.get("ground_truth", "")
+                "reference": r["reference"],
             }
         )
 
@@ -54,10 +61,10 @@ def main():
     result = evaluate(
         ds,
         metrics=[
-            faithfulness,
-            answer_relevancy,
-            context_precision,
-            context_recall,
+            Faithfulness(),
+            AnswerRelevancy(),
+            ContextPrecision(),
+            ContextRecall(),
         ],
     )
 
@@ -66,6 +73,7 @@ def main():
     print(df)
 
     out_csv = Path("data/eval_results.csv")
+    out_csv.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(out_csv, index=False)
     print("\n✅ Saved:", out_csv)
 

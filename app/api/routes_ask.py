@@ -114,10 +114,12 @@ def ask(req: AskRequest) -> AskResponse:
 
     debug: Optional[Dict[str, Any]] = None
     if req.debug:
+        debug = debug or {}
         debug["contexts"] = [c.text for c in context_chunks]
         debug = {
             "doc_id_filter": doc_id_filter,
             "fused_top": _debug_items_from_fused(fused, limit=10),
+            "contexts": [c.text for c in context_chunks],
             "context_pages": [
                 {"chunk_id": c.chunk_id, "page": c.metadata.get("page") if isinstance(c.metadata, dict) else None}
                 for c in context_chunks
@@ -125,7 +127,7 @@ def ask(req: AskRequest) -> AskResponse:
         }
 
     return AskResponse(
-        answer=answer,
+        answer=clean_answer,
         citations=[Citation(**c) for c in cits],
         debug=debug,
     )
