@@ -522,4 +522,4 @@ For issues or questions:
 
 ---
 
-**Built with ❤️ for legal document intelligence**
+
